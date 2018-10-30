@@ -23,14 +23,9 @@ def add_case(workflow, input_data):
 
 
 def execute_case(cid):
-    case = case_collection.get_case(cid)
-
-    # If another worker is executing the case, we will not
-    # TODO: Only fetch if not executing, and automatically set executing (to avoid concurrency problems)
-    if case['executing']:
+    case = case_collection.get_if_not_executing(cid)
+    if not case:
         return
-    case['executing'] = True
-    case_collection.update_case(cid, {'executing': True})
 
     workflow = case['workflow']
     step = case['step']

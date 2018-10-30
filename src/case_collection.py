@@ -18,6 +18,19 @@ class CaseCollection:
         case['_id'] = str(case['_id'])
         return case
 
+    def get_if_not_executing(self, cid):
+        """
+        Fetches a case if no other worker is executing it, and sets executing to True.
+        :param cid: The ID of the case.
+        :return: The case object, or None if it does not exist or is already being executed.
+        """
+        case = self.case_collection.find_one_and_update({'_id': ObjectId(cid), 'executing': False},
+                                                        {'$set': {'executing': True}})
+        if not case:
+            return None
+        case['_id'] = str(case['_id'])
+        return case
+
     def get_all_cases(self):
         with self.case_collection.find({}) as cases:
             result = []
