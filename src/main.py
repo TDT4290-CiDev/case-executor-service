@@ -1,16 +1,22 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from http import HTTPStatus
 import executor
 import requests
+from case_collection import CaseCollection
 
 from threading import Thread
 
 app = Flask(__name__)
 
+case_collection = CaseCollection()
+
 
 @app.route('/')
-def hello_docker():
-    return 'Hello Docker!'
+def get_all_cases():
+    cases = case_collection.get_all_cases()
+    return jsonify({
+        'cases': cases
+    })
 
 
 @app.route('/execute_workflow/<wid>', methods=['POST'])
