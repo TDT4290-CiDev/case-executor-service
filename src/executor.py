@@ -1,9 +1,21 @@
 from case_collection import CaseCollection
+from dotmap import DotMap
 import requests
 
 case_collection = CaseCollection()
 
 block_url = 'workflow-block-service:8080/'
+
+type_map = {
+    'string': str,
+    'str': str,
+    'float': float,
+    'double': float,
+    'integer': int,
+    'int': int,
+    'boolean': bool,
+    'bool': bool
+}
 
 
 def post_json(endpoint, body):
@@ -33,17 +45,27 @@ def execute_case(cid):
     while True:
         step_item = workflow['blocks'][step]
 
-        if step_item.type == "action":
+        if step_item.type == 'action':
             params = step_item['params']
-            # TODO Insert data from data store and previous step
+            insert_params = DotMap({'store': case['store'],
+                                    'outputs': case['previous_outputs']})
+            for p_name, p_value in params.items():
+                if type(p_value) == str:
+                    p_value.format_map(insert_params)
+
             result = post_json(step_item['name'], {'params': params})
 
             if result['type'] == 'result':
                 case['previous_outputs'] = result['data']
 
+                store = DotMap(case['store'])
                 for saved_output, save_to in step_item['save_outputs'].items():
                     if saved_output in result['data']:
-                        # TODO Split on '.' to generate deeper structure?
+                        path = save_to.split('.')
+                        item = store
+                        for i in range(len(path) - 1):
+                            item = item[path[i]]
+                        item[path[-1]] = result['data'][saved_output]
                         case['store'][save_to] = result['data'][saved_output]
                 step = step_item['next_block']
             elif result['type'] == 'suspend':
