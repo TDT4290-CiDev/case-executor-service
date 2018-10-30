@@ -43,6 +43,11 @@ class CaseCollection:
         return self.case_collection.insert_one(case).inserted_id
     
     def update_case(self, cid, updates):
+        try:
+            # Delete '_id' if it exists, as it is immutable
+            del updates['_id']
+        except KeyError:
+            pass
         updates = {'$set': updates}
         
         self.case_collection.update_one({'_id': ObjectId(cid)}, updates)
