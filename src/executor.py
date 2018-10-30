@@ -37,9 +37,7 @@ def add_case(workflow, input_data):
 
 
 def execute_case(cid):
-    print("Executing case", cid)
     case = case_collection.get_if_not_executing(cid)
-    print(case)
     if not case:
         return
 
@@ -57,9 +55,7 @@ def execute_case(cid):
                 if type(p_value) == str:
                     p_value.format_map(insert_params)
 
-            print(params)
             result = post_json(step_item['name'], {'params': params})
-            print(result)
 
             if result['type'] == 'result':
                 case['previous_outputs'] = result['data']
@@ -72,15 +68,12 @@ def execute_case(cid):
                         for i in range(len(path) - 1):
                             item = item[path[i]]
                         item[path[-1]] = result['data'][saved_output]
-                        # case['store'][save_to] = result['data'][saved_output]
                 step = step_item['next_block']
-                case['store'] = dict(store)
+                case['store'] = store.toDict()
             elif result['type'] == 'suspend':
                 case['suspended'] = True
                 # TODO Need to save state, and handle the reason for suspension
                 pass
-
-            print(case['store'])
 
         # Save the new state of the case (ensures that we can continue after a crash)
         case_collection.update_case(cid, case)
