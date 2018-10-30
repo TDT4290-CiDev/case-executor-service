@@ -1,11 +1,10 @@
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from enum import Enum
 
 access_url = 'case-executor-datastore:27017'
 
 
-class CaseStatus(Enum):
+class CaseStatus:
     WAITING = 'WAITING'
     EXECUTING = 'EXECUTING'
     FINISHED = 'FINISHED'
@@ -34,7 +33,7 @@ class CaseCollection:
         :return: The case object, or None if it does not exist or is already being executed.
         """
         case = self.case_collection.find_one_and_update({'_id': ObjectId(cid), 'status': CaseStatus.WAITING},
-                                                        {'$set': {'executing': CaseStatus.EXECUTING}})
+                                                        {'$set': {'status': CaseStatus.EXECUTING}})
         if not case:
             return None
         case['_id'] = str(case['_id'])
