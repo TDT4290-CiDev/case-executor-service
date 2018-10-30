@@ -1,7 +1,16 @@
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from enum import Enum
 
 access_url = 'case-executor-datastore:27017'
+
+
+class CaseStatus(Enum):
+    WAITING = 'WAITING'
+    EXECUTING = 'EXECUTING'
+    FINISHED = 'FINISHED'
+    SUSPENDED = 'SUSPENDED'
+    ERROR = 'ERROR'
 
 
 class CaseCollection:
@@ -18,14 +27,14 @@ class CaseCollection:
         case['_id'] = str(case['_id'])
         return case
 
-    def get_if_not_executing(self, cid):
+    def get_if_waiting(self, cid):
         """
-        Fetches a case if no other worker is executing it, and sets executing to True.
+        Fetches a case if status is WAITING, and sets status to EXECUTING
         :param cid: The ID of the case.
         :return: The case object, or None if it does not exist or is already being executed.
         """
-        case = self.case_collection.find_one_and_update({'_id': ObjectId(cid), 'executing': False},
-                                                        {'$set': {'executing': True}})
+        case = self.case_collection.find_one_and_update({'_id': ObjectId(cid), 'status': CaseStatus.WAITING},
+                                                        {'$set': {'executing': CaseStatus.EXECUTING}})
         if not case:
             return None
         case['_id'] = str(case['_id'])

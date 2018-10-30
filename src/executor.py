@@ -1,8 +1,11 @@
 from case_collection import CaseCollection
 from dotmap import DotMap
+from http import HTTPStatus
 import requests
+from case_collection import CaseStatus
 
 case_collection = CaseCollection()
+
 
 block_url = 'http://workflow-block-service:8080/'
 
@@ -21,7 +24,10 @@ type_map = {
 def post_json(endpoint, body):
     url = block_url + endpoint
     response = requests.post(url, json=body)
-    return response.json()
+    if response.status_code == HTTPStatus.OK:
+        return response.json()
+    else:
+        raise Exception('Endpoint {} returned status {}: {}'.format(endpoint, response.status_code, response.text))
 
 
 def add_case(workflow, input_data):
@@ -30,14 +36,14 @@ def add_case(workflow, input_data):
         "store": {"input": input_data},
         "previous_outputs": input_data,
         "step": workflow['start_block'],
-        "executing": False
+        "status": CaseStatus.WAITING
     }
 
     return case_collection.add_case(case)
 
 
 def execute_case(cid):
-    case = case_collection.get_if_not_executing(cid)
+    case = case_collection.get_if_waiting(cid)
     if not case:
         return
 
@@ -55,7 +61,12 @@ def execute_case(cid):
                 if type(p_value) == str:
                     params[p_name] = p_value.format_map(insert_params)
 
-            result = post_json(step_item['name'], {'params': params})
+            try:
+                result = post_json(step_item['name'], {'params': params})
+            except Exception as e:
+                case['status'] = CaseStatus.ERROR
+                case['error'] = str(e)
+                break
 
             if result['type'] == 'result':
                 case['previous_outputs'] = result['data']
@@ -74,6 +85,9 @@ def execute_case(cid):
                 case['suspended'] = True
                 # TODO Need to save state, and handle the reason for suspension
                 pass
+
+        if step == '-1':
+            case['status'] = CaseStatus.FINISHED
 
         # Save the new state of the case (ensures that we can continue after a crash)
         case_collection.update_case(cid, case)
