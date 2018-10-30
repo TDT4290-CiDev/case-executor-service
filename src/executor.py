@@ -42,6 +42,12 @@ def add_case(workflow, input_data):
     return case_collection.add_case(case)
 
 
+def case_error(case, error):
+    case['status'] = CaseStatus.ERROR
+    case['error'] = error
+    case_collection.update_case(case['_id'], case)
+
+
 def execute_case(cid):
     case = case_collection.get_if_waiting(cid)
     if not case:
@@ -54,6 +60,8 @@ def execute_case(cid):
         step_item = workflow['blocks'][step]
 
         if step_item['type'] == 'action':
+            block_info = requests.get(block_url + step_item['name'] + '/info').json()
+
             params = step_item['params']
             insert_params = DotMap({'store': case['store'],
                                     'outputs': case['previous_outputs']})
@@ -61,11 +69,23 @@ def execute_case(cid):
                 if type(p_value) == str:
                     params[p_name] = p_value.format_map(insert_params)
 
+            cleaned_params = {}
+            for p in block_info['params']:
+                try:
+                    typ = type_map[block_info['params'][p]['type']]
+                    cleaned_params[p] = typ(params[p])
+                except KeyError:
+                    case_error(case, 'Case is missing parameter ' + p + ' required by the block ' + step_item['name'] +
+                               'in step ' + step)
+                    break
+                except ValueError:
+                    case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
+                    break
+
             try:
-                result = post_json(step_item['name'], {'params': params})
+                result = post_json(step_item['name'], {'params': cleaned_params})
             except Exception as e:
-                case['status'] = CaseStatus.ERROR
-                case['error'] = str(e)
+                case_error(case, str(e))
                 break
 
             if result['type'] == 'result':
