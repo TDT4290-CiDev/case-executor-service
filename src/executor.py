@@ -53,7 +53,7 @@ def execute_case(cid):
                                     'outputs': case['previous_outputs']})
             for p_name, p_value in params.items():
                 if type(p_value) == str:
-                    p_value.format_map(insert_params)
+                    params[p_name] = p_value.format_map(insert_params)
 
             result = post_json(step_item['name'], {'params': params})
 
