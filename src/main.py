@@ -15,7 +15,23 @@ case_collection = CaseCollection()
 def get_all_cases():
     cases = case_collection.get_all_cases()
     return jsonify({
-        'cases': cases
+        'data': cases
+    })
+
+
+@app.route('/<cid>')
+def get_single_case(cid):
+    case = case_collection.get_case(cid)
+    return jsonify({
+        'data': case
+    })
+
+
+@app.route('/<cid>/store')
+def get_case_store(cid):
+    case = case_collection.get_case(cid)
+    return jsonify({
+        'data': case['store']
     })
 
 
