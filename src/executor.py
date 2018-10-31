@@ -48,6 +48,33 @@ def case_error(case, error):
     case_collection.update_case(case['_id'], case)
 
 
+def execute_block(case, block, step):
+    block_info = requests.get(block_url + block['name'] + '/info').json()
+
+    params = block['params']
+    insert_params = DotMap({'store': case['store'],
+                            'outputs': case['previous_outputs']})
+    for p_name, p_value in params.items():
+        if type(p_value) == str:
+            params[p_name] = p_value.format_map(insert_params)
+
+    cleaned_params = {}
+    for p in block_info['params']:
+        try:
+            typ = type_map[block_info['params'][p]['type']]
+            cleaned_params[p] = typ(params[p])
+        except KeyError:
+            case_error(case, 'Case is missing parameter ' + p + ' required by the block ' +
+                       block['name'] + 'in step ' + step)
+            return None
+        except ValueError:
+            case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
+            return None
+
+    result = post_json(block['name'], {'params': cleaned_params})
+    return result
+
+
 def execute_case(cid):
     case = case_collection.get_if_waiting(cid)
     if not case:
@@ -61,33 +88,10 @@ def execute_case(cid):
             step_item = workflow['blocks'][step]
 
             if step_item['type'] == 'action':
-                block_info = requests.get(block_url + step_item['name'] + '/info').json()
+                result = execute_block(case, step_item, step)
 
-                params = step_item['params']
-                insert_params = DotMap({'store': case['store'],
-                                        'outputs': case['previous_outputs']})
-                for p_name, p_value in params.items():
-                    if type(p_value) == str:
-                        params[p_name] = p_value.format_map(insert_params)
-
-                cleaned_params = {}
-                for p in block_info['params']:
-                    try:
-                        typ = type_map[block_info['params'][p]['type']]
-                        cleaned_params[p] = typ(params[p])
-                    except KeyError:
-                        case_error(case, 'Case is missing parameter ' + p + ' required by the block ' + step_item['name'] +
-                                   'in step ' + step)
-                        break
-                    except ValueError:
-                        case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
-                        break
-
-                try:
-                    result = post_json(step_item['name'], {'params': cleaned_params})
-                except Exception as e:
-                    case_error(case, str(e))
-                    break
+                if not result:
+                    return
 
                 if result['type'] == 'result':
                     case['previous_outputs'] = result['data']
