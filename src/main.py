@@ -42,7 +42,7 @@ def execute_workflow(wid):
     cid = executor.add_case(workflow, form_data)
     thread = Thread(target=executor.execute_case(cid))
     thread.start()
-    return '', HTTPStatus.CREATED
+    return cid, HTTPStatus.CREATED
 
 
 # Only for testing purposes - should use WSGI server in production

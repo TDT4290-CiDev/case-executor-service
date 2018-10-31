@@ -48,7 +48,7 @@ class CaseCollection:
         return result
 
     def add_case(self, case):
-        return self.case_collection.insert_one(case).inserted_id
+        return str(self.case_collection.insert_one(case).inserted_id)
     
     def update_case(self, cid, updates):
         try:
