@@ -2,12 +2,16 @@ from case_collection import CaseCollection
 from dotmap import DotMap
 from http import HTTPStatus
 import requests
+from multiprocessing import Process
 from case_collection import CaseStatus
+import time
 
 case_collection = CaseCollection()
 
 
 block_url = 'http://workflow-block-service:8080/'
+NUM_WORKERS = 5
+workers = []
 
 type_map = {
     'string': str,
@@ -102,15 +106,11 @@ def execute_block(case, block, step):
     return result
 
 
-def execute_case(cid):
+def execute_case(case):
     """
     Handles the execution of a case, including the execution of single blocks and branching.
     :param cid: The case ID.
     """
-    case = case_collection.get_if_waiting(cid)
-    if not case:
-        return
-
     try:
         workflow = case['workflow']
         step = case['step']
@@ -146,10 +146,26 @@ def execute_case(cid):
                 case['status'] = CaseStatus.FINISHED
 
             # Save the new state of the case (ensures that we can continue after a crash)
-            case_collection.update_case(cid, case)
+            case_collection.update_case(case['_id'], case)
 
             # If the next step is '-1', we have reached a terminal state
             if step == '-1':
                 break
     except Exception as e:
         case_error(case, 'An unexpected error occured: ' + str(e))
+
+
+def worker_target():
+    while True:
+        case = case_collection.get_first_waiting()
+        if not case:
+            time.sleep(5)
+        else:
+            execute_case(case)
+
+
+def start_workers():
+    for i in range(NUM_WORKERS):
+        worker = Process(target=worker_target)
+        workers.append(worker)
+        worker.start()

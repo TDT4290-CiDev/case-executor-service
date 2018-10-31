@@ -39,6 +39,19 @@ class CaseCollection:
         case['_id'] = str(case['_id'])
         return case
 
+    def get_first_waiting(self):
+        """
+        Fetches the first case where status is WAITING, and sets status to EXECUTING
+        :param cid: The ID of the case.
+        :return: The case object, or None if it does not exist or is already being executed.
+        """
+        case = self.case_collection.find_one_and_update({'status': CaseStatus.WAITING},
+                                                        {'$set': {'status': CaseStatus.EXECUTING}})
+        if not case:
+            return None
+        case['_id'] = str(case['_id'])
+        return case
+
     def get_all_cases(self):
         with self.case_collection.find({}) as cases:
             result = []
