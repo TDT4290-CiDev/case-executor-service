@@ -22,6 +22,12 @@ type_map = {
 
 
 def post_json(endpoint, body):
+    """
+    Sends a post request to the given endpoint, and returns result as a JSON object.
+    :param endpoint: The endpoint that should be called on the WorkflowBlockService.
+    :param body: The body of the request as a JSON object.
+    :return: The response from the block.
+    """
     url = block_url + endpoint
     response = requests.post(url, json=body)
     if response.status_code == HTTPStatus.OK:
@@ -31,6 +37,12 @@ def post_json(endpoint, body):
 
 
 def add_case(workflow, input_data):
+    """
+    Adds a new case with the given workflow and input data.
+    :param workflow: The workflow that the case is an instance of.
+    :param input_data: The input data to the workflow.
+    :return: The ID of the newly created case.
+    """
     case = {
         "workflow": workflow,
         "store": {"input": input_data},
@@ -43,12 +55,24 @@ def add_case(workflow, input_data):
 
 
 def case_error(case, error):
+    """
+    Set error fields for the given case, and persist it to the database.
+    :param case: The case that has given an error.
+    :param error: The error message.
+    """
     case['status'] = CaseStatus.ERROR
     case['error'] = error
     case_collection.update_case(case['_id'], case)
 
 
 def execute_block(case, block, step):
+    """
+    Executes a block by compiling parameters and calling the correct endpoint on WorkflowBlockService.
+    :param case: The case that is being executed.
+    :param block: The block that should be executed.
+    :param step: The step we are currently on in the case.
+    :return: Results from the block.
+    """
     block_info = requests.get(block_url + block['name'] + '/info').json()
 
     params = block['params']
@@ -56,11 +80,14 @@ def execute_block(case, block, step):
                             'outputs': case['previous_outputs']})
     for p_name, p_value in params.items():
         if type(p_value) == str:
+            # Insert parameters from store and previous outputs.
             params[p_name] = p_value.format_map(insert_params)
 
     cleaned_params = {}
     for p in block_info['params']:
         try:
+            # Try to cast parameter to correct type.
+            # Required since all data from store or previous step are inserted as strings.
             typ = type_map[block_info['params'][p]['type']]
             cleaned_params[p] = typ(params[p])
         except KeyError:
@@ -76,6 +103,10 @@ def execute_block(case, block, step):
 
 
 def execute_case(cid):
+    """
+    Handles the execution of a case, including the execution of single blocks and branching.
+    :param cid: The case ID.
+    """
     case = case_collection.get_if_waiting(cid)
     if not case:
         return
