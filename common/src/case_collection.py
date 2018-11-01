@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, ReturnDocument
 from bson.objectid import ObjectId
 
 access_url = 'case-executor-datastore:27017'
@@ -33,7 +33,8 @@ class CaseCollection:
         :return: The case object, or None if it does not exist or is already being executed.
         """
         case = self.case_collection.find_one_and_update({'_id': ObjectId(cid), 'status': CaseStatus.WAITING},
-                                                        {'$set': {'status': CaseStatus.EXECUTING}})
+                                                        {'$set': {'status': CaseStatus.EXECUTING}},
+                                                        return_document=ReturnDocument.AFTER)
         if not case:
             return None
         case['_id'] = str(case['_id'])
@@ -46,7 +47,8 @@ class CaseCollection:
         :return: The case object, or None if it does not exist or is already being executed.
         """
         case = self.case_collection.find_one_and_update({'status': CaseStatus.WAITING},
-                                                        {'$set': {'status': CaseStatus.EXECUTING}})
+                                                        {'$set': {'status': CaseStatus.EXECUTING}},
+                                                        return_document=ReturnDocument.AFTER)
         if not case:
             return None
         case['_id'] = str(case['_id'])

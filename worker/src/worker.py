@@ -96,7 +96,6 @@ def save_result(case, result, step_item):
             for i in range(len(path) - 1):
                 item = item[path[i]]
             item[path[-1]] = result['data'][saved_output]
-    step = step_item['next_block']
     case['store'] = store.toDict()
 
 
@@ -113,6 +112,7 @@ def execute_case(case):
             step_item = workflow['blocks'][step]
 
             if step_item['type'] == 'action':
+                print(step)
                 result = execute_block(case, step_item, step)
 
                 if not result:
@@ -120,6 +120,7 @@ def execute_case(case):
 
                 if result['type'] == 'result':
                     save_result(case, result, step_item)
+                    step = step_item['next_block']
                 elif result['type'] == 'suspend':
                     case['suspended'] = True
                     # TODO Need to save state, and handle the reason for suspension
