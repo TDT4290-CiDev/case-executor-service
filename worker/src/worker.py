@@ -85,6 +85,21 @@ def execute_block(case, block, step):
     return result
 
 
+def save_result(case, result, step_item):
+    case['previous_outputs'] = result['data']
+
+    store = DotMap(case['store'])
+    for saved_output, save_to in step_item['save_outputs'].items():
+        if saved_output in result['data']:
+            path = save_to.split('.')
+            item = store
+            for i in range(len(path) - 1):
+                item = item[path[i]]
+            item[path[-1]] = result['data'][saved_output]
+    step = step_item['next_block']
+    case['store'] = store.toDict()
+
+
 def execute_case(case):
     """
     Handles the execution of a case, including the execution of single blocks and branching.
@@ -104,18 +119,7 @@ def execute_case(case):
                     return
 
                 if result['type'] == 'result':
-                    case['previous_outputs'] = result['data']
-
-                    store = DotMap(case['store'])
-                    for saved_output, save_to in step_item['save_outputs'].items():
-                        if saved_output in result['data']:
-                            path = save_to.split('.')
-                            item = store
-                            for i in range(len(path) - 1):
-                                item = item[path[i]]
-                            item[path[-1]] = result['data'][saved_output]
-                    step = step_item['next_block']
-                    case['store'] = store.toDict()
+                    save_result(case, result, step_item)
                 elif result['type'] == 'suspend':
                     case['suspended'] = True
                     # TODO Need to save state, and handle the reason for suspension
