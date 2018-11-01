@@ -144,6 +144,7 @@ def main():
         if not case:
             time.sleep(5)
         else:
+            print("Executing case", case['_id'])
             execute_case(case)
 
 

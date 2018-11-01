@@ -64,6 +64,7 @@ class CaseCollection:
         return str(self.case_collection.insert_one(case).inserted_id)
     
     def update_case(self, cid, updates):
+        updates = dict(updates)
         try:
             # Delete '_id' if it exists, as it is immutable
             del updates['_id']
