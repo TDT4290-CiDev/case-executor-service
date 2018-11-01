@@ -1,3 +1,3 @@
 #!/bin/sh
 cd src
-python worker.py
+python -u worker.py
