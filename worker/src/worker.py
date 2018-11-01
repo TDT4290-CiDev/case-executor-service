@@ -1,17 +1,12 @@
-from case_collection import CaseCollection
-from dotmap import DotMap
 from http import HTTPStatus
+from dotmap import DotMap
 import requests
-from multiprocessing import Process
-from case_collection import CaseStatus
 import time
 
+from case_collection import CaseCollection, CaseStatus
+
 case_collection = CaseCollection()
-
-
 block_url = 'http://workflow-block-service:8080/'
-NUM_WORKERS = 5
-workers = []
 
 type_map = {
     'string': str,
@@ -38,24 +33,6 @@ def post_json(endpoint, body):
         return response.json()
     else:
         raise Exception('Endpoint {} returned status {}: {}'.format(endpoint, response.status_code, response.text))
-
-
-def add_case(workflow, input_data):
-    """
-    Adds a new case with the given workflow and input data.
-    :param workflow: The workflow that the case is an instance of.
-    :param input_data: The input data to the workflow.
-    :return: The ID of the newly created case.
-    """
-    case = {
-        "workflow": workflow,
-        "store": {"input": input_data},
-        "previous_outputs": input_data,
-        "step": workflow['start_block'],
-        "status": CaseStatus.WAITING
-    }
-
-    return case_collection.add_case(case)
 
 
 def case_error(case, error):
@@ -155,7 +132,7 @@ def execute_case(case):
         case_error(case, 'An unexpected error occured: ' + str(e))
 
 
-def worker_target():
+def main():
     while True:
         case = case_collection.get_first_waiting()
         if not case:
@@ -164,8 +141,5 @@ def worker_target():
             execute_case(case)
 
 
-def start_workers():
-    for i in range(NUM_WORKERS):
-        worker = Process(target=worker_target)
-        workers.append(worker)
-        worker.start()
+if __name__ == '__main__':
+    main()
