@@ -1,13 +1,29 @@
 from flask import Flask, request, jsonify
 from http import HTTPStatus
-import executor
 import requests
-from case_collection import CaseCollection
+from case_collection import CaseCollection, CaseStatus
 
 app = Flask(__name__)
 
 case_collection = CaseCollection()
-executor.start_workers()
+
+
+def add_case(workflow, input_data):
+    """
+    Adds a new case with the given workflow and input data.
+    :param workflow: The workflow that the case is an instance of.
+    :param input_data: The input data to the workflow.
+    :return: The ID of the newly created case.
+    """
+    case = {
+        "workflow": workflow,
+        "store": {"input": input_data},
+        "previous_outputs": input_data,
+        "step": workflow['start_block'],
+        "status": CaseStatus.WAITING
+    }
+
+    return case_collection.add_case(case)
 
 
 @app.route('/')
@@ -38,7 +54,7 @@ def get_case_store(cid):
 def execute_workflow(wid):
     workflow = requests.get('http://workflow-editor-service:8080/{wid}'.format(wid=wid)).json()['data']
     form_data = request.get_json()
-    cid = executor.add_case(workflow, form_data)
+    cid = add_case(workflow, form_data)
     return cid, HTTPStatus.CREATED
 
 
