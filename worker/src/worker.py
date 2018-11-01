@@ -99,6 +99,16 @@ def save_result(case, result, step_item):
     case['store'] = store.toDict()
 
 
+def evaluate_branch(case, step_item):
+    condition = step_item['condition']
+    insert_params = DotMap({'store': case['store'],
+                            'outputs': case['previous_outputs']})
+    condition = condition.format_map(insert_params)
+    print(condition)
+
+    return bool(eval(condition, {'__builtins__': None}, {}))
+
+
 def execute_case(case):
     """
     Handles the execution of a case, including the execution of single blocks and branching.
@@ -108,11 +118,10 @@ def execute_case(case):
         workflow = case['workflow']
         step = case['step']
 
-        while True:
+        while step != '-1':
             step_item = workflow['blocks'][step]
 
             if step_item['type'] == 'action':
-                print(step)
                 result = execute_block(case, step_item, step)
 
                 if not result:
@@ -125,16 +134,19 @@ def execute_case(case):
                     case['suspended'] = True
                     # TODO Need to save state, and handle the reason for suspension
                     pass
+            elif step_item['type'] == 'branch':
+                step = step_item['next_block'][int(not evaluate_branch(case, step_item))]
 
+
+            # If the next step is '-1', we have reached a terminal state
             if step == '-1':
                 case['status'] = CaseStatus.FINISHED
+
+            case['step'] = step
 
             # Save the new state of the case (ensures that we can continue after a crash)
             case_collection.update_case(case['_id'], case)
 
-            # If the next step is '-1', we have reached a terminal state
-            if step == '-1':
-                break
     except Exception as e:
         case_error(case, 'An unexpected error occured: ' + str(e))
 
