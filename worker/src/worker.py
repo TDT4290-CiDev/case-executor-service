@@ -1,9 +1,11 @@
 from http import HTTPStatus
-from dotmap import DotMap
-import requests
 import time
 
+from dotmap import DotMap
+import requests
+
 from case_collection import CaseCollection, CaseStatus
+
 
 case_collection = CaseCollection()
 block_url = 'http://workflow-block-service:8080/'

@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify
 from http import HTTPStatus
+
+from flask import Flask, request, jsonify
 import requests
+
 from case_collection import CaseCollection, CaseStatus
 
-app = Flask(__name__)
 
+app = Flask(__name__)
 case_collection = CaseCollection()
 
 
