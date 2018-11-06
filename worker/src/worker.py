@@ -37,7 +37,7 @@ def post_json(endpoint, body):
         raise Exception('Endpoint {} returned status {}: {}'.format(endpoint, response.status_code, response.text))
 
 
-def case_error(case, error):
+def set_case_error(case, error):
     """
     Set error fields for the given case, and persist it to the database.
     :param case: The case that has given an error.
@@ -74,11 +74,11 @@ def execute_block(case, block, step):
             typ = type_map[block_info['params'][p]['type']]
             cleaned_params[p] = typ(params[p])
         except KeyError:
-            case_error(case, 'Case is missing parameter ' + p + ' required by the block ' +
-                       block['name'] + 'in step ' + step)
+            set_case_error(case, 'Case is missing parameter ' + p + ' required by the block ' +
+                           block['name'] + 'in step ' + step)
             return None
         except ValueError:
-            case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
+            set_case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
             return None
 
     result = post_json(block['name'], {'params': cleaned_params})
@@ -104,7 +104,6 @@ def evaluate_branch(case, step_item):
     insert_params = DotMap({'store': case['store'],
                             'outputs': case['previous_outputs']})
     condition = condition.format_map(insert_params)
-    print(condition)
 
     return bool(eval(condition, {'__builtins__': None}, {}))
 
@@ -148,7 +147,7 @@ def execute_case(case):
             case_collection.update_case(case['_id'], case)
 
     except Exception as e:
-        case_error(case, 'An unexpected error occured: ' + str(e))
+        set_case_error(case, 'An unexpected error occured: ' + str(e))
 
 
 def main():
