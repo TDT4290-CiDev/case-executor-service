@@ -9,6 +9,8 @@ from case_collection import CaseCollection, CaseStatus
 app = Flask(__name__)
 case_collection = CaseCollection()
 
+workflow_editor_service_url = 'http://workflow-editor-service:8080/'
+
 
 def add_case(workflow, input_data):
     """
@@ -54,7 +56,7 @@ def get_case_store(cid):
 
 @app.route('/execute_workflow/<wid>', methods=['POST'])
 def execute_workflow(wid):
-    workflow = requests.get('http://workflow-editor-service:8080/{wid}'.format(wid=wid)).json()['data']
+    workflow = requests.get('{url_base}{wid}'.format(url_base=workflow_editor_service_url, wid=wid)).json()['data']
     form_data = request.get_json()
     cid = add_case(workflow, form_data)
     return cid, HTTPStatus.CREATED
