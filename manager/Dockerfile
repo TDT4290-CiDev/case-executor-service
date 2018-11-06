@@ -3,12 +3,13 @@ FROM python:3.7-alpine
 RUN adduser -D cidev
 WORKDIR /home/cidev
 
-COPY requirements.txt requirements.txt
+COPY manager/requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 RUN pip install gunicorn
 
-COPY src src
-COPY boot.sh ./
+COPY manager/src src
+ADD common/src src/
+COPY manager/boot.sh ./
 RUN chmod +x boot.sh
 
 ENV FLASK_APP src/main.py
