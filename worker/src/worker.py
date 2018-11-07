@@ -156,7 +156,7 @@ def execute_case(case, was_suspended=False):
 def main():
     while True:
         # Try to fetch suspended cases first (takes priority over new cases)
-        case = case_collection.get_first_suspended()
+        case = case_collection.get_first_waiting_suspended()
         if case:
             print("Executing case", case['_id'], "(continued after suspension)")
             execute_case(case, was_suspended=True)

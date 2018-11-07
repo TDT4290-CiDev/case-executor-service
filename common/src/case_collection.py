@@ -10,6 +10,7 @@ class CaseStatus:
     FINISHED = 'FINISHED'
     SUSPENDED = 'SUSPENDED'
     ERROR = 'ERROR'
+    WAITING_SUSPENDED = 'WAITING_SUSPENDED'
 
 
 class CaseCollection:
@@ -53,12 +54,12 @@ class CaseCollection:
         case['_id'] = str(case['_id'])
         return case
 
-    def get_first_suspended(self):
+    def get_first_waiting_suspended(self):
         """
-        Fetches the first case where status is SUSPENDED, and sets status to EXECUTING
+        Fetches the first case where status is WAITING_SUSPENDED, and sets status to EXECUTING
         :return: The case object, or None if it does not exist or is already being executed.
         """
-        case = self.case_collection.find_one_and_update({'status': CaseStatus.SUSPENDED},
+        case = self.case_collection.find_one_and_update({'status': CaseStatus.WAITING_SUSPENDED},
                                                         {'$set': {'status': CaseStatus.EXECUTING}},
                                                         return_document=ReturnDocument.AFTER)
         if not case:
