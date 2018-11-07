@@ -48,12 +48,13 @@ def set_case_error(case, error):
     case_collection.update_case(case['_id'], case)
 
 
-def execute_block(case, block, step):
+def execute_block(case, block, step, was_suspended=False):
     """
     Executes a block by compiling parameters and calling the correct endpoint on WorkflowBlockService.
     :param case: The case that is being executed.
     :param block: The block that should be executed.
     :param step: The step we are currently on in the case.
+    :param was_suspended: Indicates whether the block is resuming from previous suspension.
     :return: Results from the block.
     """
     block_info = requests.get(block_url + block['name'] + '/info').json()
@@ -81,7 +82,10 @@ def execute_block(case, block, step):
             set_case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
             return None
 
-    result = post_json(block['name'], {'params': cleaned_params})
+    if was_suspended:
+        result = post_json(block['name'] + "/resume/", {'params': cleaned_params, 'state': case['state']})
+    else:
+        result = post_json(block['name'], {'params': cleaned_params})
     return result
 
 
@@ -109,10 +113,6 @@ def evaluate_branch(case, step_item):
 
 
 def execute_case(case, was_suspended=False):
-    """
-    Handles the execution of a case, including the execution of single blocks and branching.
-    :param cid: The case ID.
-    """
     try:
         workflow = case['workflow']
         step = case['step']
@@ -121,7 +121,10 @@ def execute_case(case, was_suspended=False):
             step_item = workflow['blocks'][step]
 
             if step_item['type'] == 'action':
-                result = execute_block(case, step_item, step)
+                result = execute_block(case, step_item, step, was_suspended)
+
+                # Delete any state information from the block, as we no longer need it
+                del case['state']
 
                 if not result:
                     return
@@ -136,7 +139,6 @@ def execute_case(case, was_suspended=False):
                     return
             elif step_item['type'] == 'branch':
                 step = step_item['next_block'][int(not evaluate_branch(case, step_item))]
-
 
             # If the next step is '-1', we have reached a terminal state
             if step == '-1':
