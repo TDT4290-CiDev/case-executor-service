@@ -130,9 +130,10 @@ def execute_case(case):
                     save_result(case, result, step_item)
                     step = step_item['next_block']
                 elif result['type'] == 'suspend':
-                    case['suspended'] = True
-                    # TODO Need to save state, and handle the reason for suspension
-                    pass
+                    case['status'] = CaseStatus.SUSPENDED
+                    case['state'] = result['state']
+                    case_collection.update_case(case['_id'], case)
+                    return
             elif step_item['type'] == 'branch':
                 step = step_item['next_block'][int(not evaluate_branch(case, step_item))]
 
