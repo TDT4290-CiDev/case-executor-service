@@ -124,13 +124,15 @@ def execute_case(case, was_suspended=False):
                 result = execute_block(case, step_item, step, was_suspended)
 
                 # Delete any state information from the block, as we no longer need it
-                del case['state']
+                if 'state' in case:
+                    del case['state']
 
                 if not result:
                     return
 
                 if result['type'] == 'result':
-                    save_result(case, result, step_item)
+                    if 'save_outputs' in step_item:
+                        save_result(case, result, step_item)
                     step = step_item['next_block']
                 elif result['type'] == 'suspend':
                     case['status'] = CaseStatus.SUSPENDED
