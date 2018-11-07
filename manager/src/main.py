@@ -53,9 +53,12 @@ def get_case_store(cid):
         'data': case['store']
     })
 
+
 @app.route('/<cid>/resume/', methods=['GET'], strict_slashes=False)
 def resume_case(cid):
     case = case_collection.get_case(cid)
+    if case['status'] != CaseStatus.SUSPENDED:
+        return 'Case is not suspended!', HTTPStatus.BAD_REQUEST
     case['status'] = CaseStatus.WAITING_SUSPENDED
     case_collection.update_case(cid, case)
     return '', HTTPStatus.OK
