@@ -108,7 +108,7 @@ def evaluate_branch(case, step_item):
     return bool(eval(condition, {'__builtins__': None}, {}))
 
 
-def execute_case(case):
+def execute_case(case, was_suspended=False):
     """
     Handles the execution of a case, including the execution of single blocks and branching.
     :param cid: The case ID.
@@ -153,7 +153,13 @@ def execute_case(case):
 
 def main():
     while True:
-        case = case_collection.get_first_waiting()
+        # Try to fetch suspended cases first (takes priority over new cases)
+        case = case_collection.get_first_suspended()
+        if case:
+            print("Executing case", case['_id'], "(continued after suspension)")
+            execute_case(case, was_suspended=True)
+        else:
+            case = case_collection.get_first_waiting()
         if not case:
             time.sleep(5)
         else:
