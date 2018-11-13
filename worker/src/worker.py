@@ -82,8 +82,8 @@ def execute_block(case, block, step, was_suspended=False):
             typ = type_map[block_info['params'][p]['type']]
             cleaned_params[p] = typ(params[p])
         except KeyError:
-            set_case_error(case, 'Case is missing parameter ' + p + ' required by the block ' +
-                           block['name'] + 'in step ' + step)
+            set_case_error(case, 'Case is missing parameter "' + p + '" required by the block ' +
+                           block['name'] + ' in step ' + step)
             return None
         except ValueError:
             set_case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
