@@ -60,8 +60,15 @@ def execute_block(case, block, step, was_suspended=False):
     block_info = requests.get(block_url + block['name'] + '/info').json()
 
     params = block['params']
-    insert_params = DotMap({'store': case['store'],
-                            'outputs': case['previous_outputs']})
+    insert_params = DotMap({
+        'store': case['store'],
+        'outputs': case['previous_outputs'],
+        'case': {
+            'id': case['_id'],
+            'step': case['step'],
+            'workflow_id': case['workflow']['_id']
+        }
+    })
     for p_name, p_value in params.items():
         if type(p_value) == str:
             # Insert parameters from store and previous outputs.
@@ -75,8 +82,8 @@ def execute_block(case, block, step, was_suspended=False):
             typ = type_map[block_info['params'][p]['type']]
             cleaned_params[p] = typ(params[p])
         except KeyError:
-            set_case_error(case, 'Case is missing parameter ' + p + ' required by the block ' +
-                           block['name'] + 'in step ' + step)
+            set_case_error(case, 'Case is missing parameter "' + p + '" required by the block ' +
+                           block['name'] + ' in step ' + step)
             return None
         except ValueError:
             set_case_error(case, 'Failed to cast parameter value for parameter ' + p + ' in step ' + step)
@@ -90,8 +97,6 @@ def execute_block(case, block, step, was_suspended=False):
 
 
 def save_result(case, result, step_item):
-    case['previous_outputs'] = result['data']
-
     store = DotMap(case['store'])
     for saved_output, save_to in step_item['save_outputs'].items():
         if saved_output in result['data']:
@@ -131,6 +136,7 @@ def execute_case(case, was_suspended=False):
                     return
 
                 if result['type'] == 'result':
+                    case['previous_outputs'] = result['data']
                     if 'save_outputs' in step_item:
                         save_result(case, result, step_item)
                     step = step_item['next_block']
