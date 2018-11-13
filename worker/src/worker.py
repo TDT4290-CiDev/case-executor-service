@@ -60,8 +60,15 @@ def execute_block(case, block, step, was_suspended=False):
     block_info = requests.get(block_url + block['name'] + '/info').json()
 
     params = block['params']
-    insert_params = DotMap({'store': case['store'],
-                            'outputs': case['previous_outputs']})
+    insert_params = DotMap({
+        'store': case['store'],
+        'outputs': case['previous_outputs'],
+        'case': {
+            'id': case['_id'],
+            'step': case['step'],
+            'workflow_id': case['workflow']['_id']
+        }
+    })
     for p_name, p_value in params.items():
         if type(p_value) == str:
             # Insert parameters from store and previous outputs.
