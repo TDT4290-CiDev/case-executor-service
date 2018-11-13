@@ -97,8 +97,6 @@ def execute_block(case, block, step, was_suspended=False):
 
 
 def save_result(case, result, step_item):
-    case['previous_outputs'] = result['data']
-
     store = DotMap(case['store'])
     for saved_output, save_to in step_item['save_outputs'].items():
         if saved_output in result['data']:
@@ -138,6 +136,7 @@ def execute_case(case, was_suspended=False):
                     return
 
                 if result['type'] == 'result':
+                    case['previous_outputs'] = result['data']
                     if 'save_outputs' in step_item:
                         save_result(case, result, step_item)
                     step = step_item['next_block']
