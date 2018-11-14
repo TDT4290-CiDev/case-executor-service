@@ -1,13 +1,13 @@
 from http import HTTPStatus
 import time
-
+from pymongo import MongoClient
 from dotmap import DotMap
 import requests
 
-from case_collection import CaseCollection, CaseStatus
+from case_collection import CaseCollection, CaseStatus, access_url
 
 
-case_collection = CaseCollection()
+case_collection = CaseCollection(MongoClient(access_url))
 block_url = 'http://workflow-block-service:8080/'
 
 type_map = {

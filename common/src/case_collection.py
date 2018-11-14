@@ -1,7 +1,18 @@
 from pymongo import MongoClient, ReturnDocument
 from bson.objectid import ObjectId
+from bson.errors import InvalidId
+
 
 access_url = 'case-executor-datastore:27017'
+
+
+def catch_invalid_id(form_operator):
+    def catch_wrapper(*args):
+        try:
+            return form_operator(*args)
+        except InvalidId:
+            raise ValueError('{} is not a valid ID. '.format(args[1]))
+    return catch_wrapper
 
 
 class CaseStatus:
@@ -15,18 +26,20 @@ class CaseStatus:
 
 class CaseCollection:
 
-    def __init__(self):
-        self.client = MongoClient(access_url)
+    def __init__(self, client):
+        self.client = client
         self.db = self.client.cidev_db
         self.case_collection = self.db.case_collection
 
+    @catch_invalid_id
     def get_case(self, cid):
         case = self.case_collection.find_one(ObjectId(cid))
         if not case:
-            return None
+            raise ValueError(f'Case with id {cid} not found.')
         case['_id'] = str(case['_id'])
         return case
 
+    @catch_invalid_id
     def get_if_waiting(self, cid):
         """
         Fetches a case if status is WAITING, and sets status to EXECUTING
@@ -77,7 +90,8 @@ class CaseCollection:
 
     def add_case(self, case):
         return str(self.case_collection.insert_one(case).inserted_id)
-    
+
+    @catch_invalid_id
     def update_case(self, cid, updates):
         updates = dict(updates)
         try:
@@ -87,10 +101,17 @@ class CaseCollection:
             pass
         updates = {'$set': updates}
         
-        self.case_collection.update_one({'_id': ObjectId(cid)}, updates)
-    
+        update_res = self.case_collection.update_one({'_id': ObjectId(cid)}, updates)
+
+        if update_res.matched_count == 0:
+            raise ValueError('Case with ID {} does not exist.'.format(cid))
+
+    @catch_invalid_id
     def delete_case(self, cid):
-        self.case_collection.delete_one({'_id': ObjectId(cid)})
+        del_res = self.case_collection.delete_one({'_id': ObjectId(cid)})
+        if del_res.deleted_count == 0:
+            raise ValueError('Case with ID {} does not exist.'.format(cid))
+
     
     def delete_all(self):
         self.case_collection.delete_many()
